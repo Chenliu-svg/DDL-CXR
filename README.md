@@ -37,12 +37,16 @@ A real ICU patient with rapid CXR changes.
 ## Set environment
 
 ```shell
+git clone https://github.com/Chenliu-svg/DDL-CXR.git
+
 conda create -n ddl_cxr python=3.8 
 conda activate ddl_cxr
 # CUDA 11.1
 pip install torch==1.9.1+cu111 torchvision==0.10.1+cu111 -f https://download.pytorch.org/whl/torch_stable.html
 pip install -r requirements.txt
 pip install taming-transformers-rom1504
+
+
 ```
 
 ## Data pre-processing
@@ -59,7 +63,7 @@ Specify the required data path  following instructions in [`pre_processing.py`](
 )
 
    ```bash
-   
+
    mimic_cxr_jpg_dir="/path/to/mimic_cxr_jpg" # e.g. /root/autodl-tmp/0807_version/physionet.org/files/mimic-cxr-jpg/2.0.0/
    mimic_iv_csv_dir="/path/to/mimic_iv_csv" #  e.g. /root/autodl-tmp/0807_version/physionet.org/files/mimiciv/2.0/
    mimic_iv_subjets_dir="/path/to/mimic_iv_subjets" # e.g. /root/autodl-tmp/dynamic-prediction/data/mimic_iv_subjects_dir
