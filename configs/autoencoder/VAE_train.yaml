@@ -1,0 +1,69 @@
+model:
+  base_learning_rate: 4.5e-6
+  target: ldm.models.autoencoder.AutoencoderKLLabel
+  params:
+
+    monitor: "val/rec_loss"
+    embed_dim: 4
+    z0_view_size: 3136
+    
+    lossconfig:
+      
+      target: ldm.modules.losses.LPIPSWithDiscriminator
+      params:
+        disc_start: 10000
+        kl_weight: 0.000001
+        disc_weight: 0.5
+
+    ddconfig:
+      double_z: True
+      z_channels: 4
+      resolution: 224
+      in_channels: 3
+      out_ch: 3
+      ch: 128
+      ch_mult: [ 1,2,4,4 ]  # num_down = len(ch_mult)-1
+      num_res_blocks: 2
+      attn_resolutions: [ ]
+      dropout: 0.2
+
+
+
+data:
+  target: main.DataModuleFromConfig
+  params:
+    batch_size: 64
+    num_workers: 32
+    wrap: True
+    train:
+      target: ldm.data.dynamic_data.VAE_Dataset
+      params:
+        partition: "train"
+        mimic_cxr_jpg_dir: /root/autodl-tmp/dynamic_new/dynamic_cxr
+        metadata_path: ./data/
+
+    validation:
+      target: ldm.data.dynamic_data.VAE_Dataset
+      params:
+        partition: "validate"
+        mimic_cxr_jpg_dir: /root/autodl-tmp/dynamic_new/dynamic_cxr
+        metadata_path: ./data/
+
+    
+    
+lightning:
+  callbacks:
+    image_logger:
+      target: main.ImageLogger
+      params:
+        batch_frequency_train: 2000
+        batch_frequency_val: 360
+        max_images: 8
+        # increase_log_steps: True
+
+  trainer:
+    benchmark: True
+    max_epochs: 60
+    deterministic: True
+    num_sanity_val_steps: 0
+    accumulate_grad_batches: 4

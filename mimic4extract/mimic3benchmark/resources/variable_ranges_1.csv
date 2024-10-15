@@ -1,0 +1,67 @@
+中文,LEVEL2,LEVEL1,OUTLIER LOW,VALID LOW,IMPUTE,VALID HIGH,OUTLIER HIGH
+丙氨酸氨基转移酶,Alanine aminotransferase,,0,2,34,10000,11000
+白蛋白,Albumin,,0,0.6,3.1,6,60
+碱性磷酸盐,Alkaline phosphate,,0,20,106,3625,4000
+阴离子间隙,Anion Gap,,0,5,13,50,55
+天冬氨酸转氨酶,Asparate aminotransferase,,0,6,40,20000,22000
+嗜碱性粒细胞,Basophils,,,,,,
+碳酸氢盐,Bicarbonate,,0,0,25,60,66
+胆红素,Bilirubin,Bilirubin (total),0,0.1,0.9,60,66
+胆红素,Bilirubin,Bilirubin (conjugated),,,,,
+胆红素,Bilirubin,Bilirubin (unconjugated),,,,,
+血液培养,Blood culture,,,,,,
+血尿素氮,Blood urea nitrogen,,0,0,23,250,275
+钙,Calcium,,,,,,
+钙离子,Calcium ionized,,,,,,
+毛细管再填充率,Capillary refill rate,,0,0,0,1,1
+氯化物,Chloride,,0,50,104,175,200
+胆固醇,Cholesterol,,0,32,160,600,660
+肌酸,Creatinine,,0,0.1,1,60,66
+舒张压,Diastolic blood pressure,,0,0,59,375,375
+嗜酸性粒细胞,Eosinophils,,,,,,
+馏分吸入氧气,Fraction inspired oxygen,,0.2,0.21,0.21,1,1.1
+Glascow昏迷量表睁眼,Glascow coma scale eye opening,,1,1,4,4,4
+Glascow昏迷量表运动反应,Glascow coma scale motor response,,1,1,6,6,6
+Glascow昏迷量表总计,Glascow coma scale total,,3,3,11,15,15
+Glascow昏迷量表言语反应,Glascow coma scale verbal response,,1,1,4,5,5
+葡萄糖,Glucose,,0,33,128,2000,2200
+心率,Heart rate,,0,0,86,350,390
+身高,Height,,0,0,170,240,275
+红细胞压积,Hematocrit,,0,0,30.2,75,100
+血红蛋白,Hemoglobin,,0,0,10.2,25,30
+乳酸,Lactate,,0,0.4,1.8,30,33
+乳酸脱氢酶,Lactate dehydrogenase,,0,54,263,33000,35000
+乳酸,Lactic acid,,,,,,
+淋巴细胞,Lymphocytes,,,,,,
+镁,Magnesium,,0,0,2,20,22
+平均血压,Mean blood pressure,,0,14,77,330,375
+平均红细胞血红蛋白,Mean corpuscular hemoglobin,,,,,,
+平均红细胞血红蛋白浓度,Mean corpuscular hemoglobin concentration,,,,,,
+平均红细胞体积,Mean corpuscular volume,,,,,,
+氧饱和度,Oxygen saturation,,0,0,98,100,150
+单核细胞,Monocytes,,,,,,
+中性白细胞,Neutrophils,,,,,,
+二氧化碳分压,Partial pressure of carbon dioxide,,0,0,40,200,220
+氧气分压,Partial pressure of oxygen,,0,32,112,700,770
+部分凝血活酶时间,Partial thromboplastin time,,0,18.8,34.4,150,150
+吸气峰值压力,Peak inspiratory pressure,,0,14,20,38,40
+pH,pH,,6.3,6.3,7.4,8.4,10
+磷酸盐,Phosphate,,0,0.5,3.4,20,22
+血小板,Platelets,,0,0,208,2000,2200
+呼气末正压,Positive end-expiratory pressure,,0,0,6,25,30
+钾,Potassium,,0,0,4.1,12,15
+凝血酶原时间,Prothrombin time,,0,9.9,14.5,97.1,150
+瞳孔左侧反应,Pupillary response left,,,,,,
+瞳孔反应权,Pupillary response right,,,,,,
+瞳孔大小左,Pupillary size left,,,,,,
+瞳孔大小正确,Pupillary size right,,,,,,
+红细胞计数,Red blood cell count,,,,,,
+呼吸频率,Respiratory rate,,0,0,19,300,330
+钠,Sodium,,0,50,142,225,250
+收缩压,Systolic blood pressure,,0,0,118,375,375
+温度,Temperature,,14.2,26,37,45,47
+肌钙蛋白,Troponin-I,,0,0.01,2.3,49.6,575
+肌钙蛋白-T,Troponin-T,,0,0.01,0.1,20.85,24
+尿量,Urine output,,0,0,80,1200,2445
+重量,Weight,,0,0,81.8,250,250
+白细胞计数,White blood cell count,,0,0,9.9,1000,1100

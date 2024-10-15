@@ -1,0 +1,117 @@
+model:
+   base_learning_rate: 0.000002
+   target: ldm.models.predict_model.FusionTokens3inputAttnFuse
+
+   params:
+     task: phenotype
+     ehr_modal: True
+     z1_modal: True
+     x0_modal: True
+     z1_embed_type: patchembedding # patchembedding , conv_trans , conv_linear, linear
+     fusion_way: attention  # attention, concat
+     hidden_size: 512
+     dropout: 0.3
+     max_epoch: 100
+     use_pos_weight: Ture
+     mode: max
+     cxr_transformer_config:
+       target: ldm.models.ts_transformer.TSTransformerEncoder
+       params:
+         feat_dim: 128 
+        
+         max_len: 50
+         d_model: 512
+         n_heads: 8
+         num_layers: 1
+         dim_feedforward: 256
+         hid_dim_1: 128
+         dropout: 0.3
+         pool: mean
+
+
+     ehr_encoder_config:
+       target: ldm.models.ts_transformer.TSTransformerEncoder
+       params:
+         feat_dim: 79
+         max_len: 50
+         d_model: 512
+         n_heads: 8
+         num_layers: 1
+         dim_feedforward: 256
+         hid_dim_1: 128
+         dropout: 0.3
+         pool: mean
+
+
+     fusion_config:
+       target: ldm.models.ts_transformer.TSTransformerEncoder
+       params:
+         feat_dim: 512
+         max_len: 100
+         d_model: 512
+         n_heads: 8
+         num_layers: 1
+         dim_feedforward: 256
+         hid_dim_1: 128
+         dropout: 0.3
+         pool: mean
+
+
+data:
+  target: main.DataModuleFromConfig
+  params:
+    batch_size: 64
+    num_workers: 16
+    wrap: True
+    dataset_mode: pred # no variable
+    train:
+      target: ldm.data.dynamic_data.PredictDataset
+      params:
+        partition: "train"
+        task: 'phenotype'
+        metadata_path: ./data/1.4_0.2
+        mimic_cxr_jpg_dir: /hdd2/mimic_cxr_resized/
+
+    validation:
+      target: ldm.data.dynamic_data.PredictDataset
+      params:
+        partition: "validate"
+        task: 'phenotype'
+         
+        metadata_path: ./data/1.4_0.2
+        mimic_cxr_jpg_dir: /hdd2/mimic_cxr_resized/
+
+    test:
+      target: ldm.data.dynamic_data.PredictDataset
+      params:
+        partition: "test"
+        task: 'phenotype'
+         
+        metadata_path: ./data/1.4_0.2
+        mimic_cxr_jpg_dir: /hdd2/mimic_cxr_resized/
+
+
+lightning:
+  learning_rate_logger:
+    target: main.LearningRateMonitor
+    params:
+      logging_interval: step
+
+  callbacks:
+    EarlyStopping:
+      target: main.EarlyStopping
+      params:
+        patience: 10
+
+  modelcheckpoint:
+    target: main.ModelCheckpoint
+    params:
+      save_top_k: 1
+      every_n_epochs: 1
+
+
+  trainer:
+    max_epochs: 100
+    deterministic: True
+    num_sanity_val_steps: 0
+
