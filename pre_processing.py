@@ -29,7 +29,11 @@ from sklearn.model_selection import train_test_split
 zero_timedelta = timedelta(0)
 one_day=timedelta(days=1)
 
-
+disease_cols=['Atelectasis', 'Cardiomegaly',
+       'Consolidation', 'Edema', 'Enlarged Cardiomediastinum', 'Fracture',
+       'Lung Lesion', 'Lung Opacity',  'Pleural Effusion',
+       'Pleural Other', 'Pneumonia', 'Pneumothorax', 'Support Devices', 'No Finding']
+cols=['subject_id','study_id']+disease_cols
 
 def check_ehr_length_distribution(neighbor_cxr_meta_path,delta,all_stay_path,mimic_iv_subjects_dir):
     """
@@ -85,7 +89,7 @@ if __name__ == '__main__':
     parser.add_argument('--mimic_iv_subjects_dir', required=True, help='The path to the mimic-iv subjects ')
     parser.add_argument('--mimic_iv_csv_dir', required=True, help='The path to the origin mimic-iv CSVs ')
     parser.add_argument('--output_csv_dir', required=True, help='The path for the output CSV from the pre-processing ')
-    parser.add_argument('--rand_seed', default=1, help='random seed ')
+    parser.add_argument('--random_seed', default=1, help='random seed ')
     
     
     args = parser.parse_args()
@@ -113,13 +117,15 @@ if __name__ == '__main__':
     
     ## handling cxr: get the latest AP  for each study case
     cxr=pd.read_csv(os.path.join(args.mimic_cxr_jpg_dir,'mimic-cxr-2.0.0-metadata.csv'))
-                
+    
+    chexpert=pd.read_csv(os.path.join(args.mimic_cxr_jpg_dir,'mimic-cxr-2.0.0-chexpert.csv'))[cols]
+          
     # convert time to pd.datetime
     cxr['StudyTime'] = cxr['StudyTime'].apply(lambda x: f'{int(float(x)):06}' )
     cxr['StudyDateTime'] = pd.to_datetime(cxr['StudyDate'].astype(str) + ' ' + cxr['StudyTime'].astype(str) ,format="%Y%m%d %H%M%S")
 
     # get the AP
-    print(len(cxr[(cxr['ViewPosition']=='AP')]))
+    # print(len(cxr[(cxr['ViewPosition']=='AP')]))
     cxr_AP=cxr[(cxr['ViewPosition']=='AP')].dropna(subset=['ViewPosition'])
     
     
@@ -131,31 +137,33 @@ if __name__ == '__main__':
     # link cxr with icu stay
     AP_merged_icustays = cxr_latest_AP.merge(all_stay, how='inner', on='subject_id')
     # get cxr taken in the first 48 hours in icu stay or in the last 24 hours in ED
-    AP_bf_selected_latest = AP_merged_icustays.loc[
-        (((AP_merged_icustays.StudyDateTime-AP_merged_icustays.intime)/one_day * 24) <=48)
-        
-        &(((AP_merged_icustays.StudyDateTime-AP_merged_icustays.intime)/one_day*24)>=-24)
-        ]
+    AP_bf_selected = AP_merged_icustays.loc[
+    (((AP_merged_icustays.StudyDateTime-AP_merged_icustays.intime)/one_day * 24) <=48)
+    
+    &(((AP_merged_icustays.StudyDateTime-AP_merged_icustays.intime)/one_day*24)>=-24)
+    ]
     # print(AP_bf_selected.stay_id.nunique())
     # print(all_stay.stay_id.nunique())
     
+    # choose the latest one for each icu stay
+    AP_bf_selected_sorted=AP_bf_selected.sort_values(['subject_id','stay_id','StudyDateTime'],ascending=True)
+    AP_bf_selected_latest=AP_bf_selected_sorted.groupby(['subject_id','stay_id']).nth(-1).reset_index()
     AP_bf_selected_latest['cha']=AP_bf_selected_latest[['intime','StudyDateTime']].apply(lambda x:(2-(x['StudyDateTime']-x['intime'])/one_day)*24,axis=1)
-    # print(AP_bf_selected_latest.cha.describe())
-    # print(sum(AP_bf_selected_latest.cha < 12))
-    
     AP_bf_selected_small=AP_bf_selected_latest[['subject_id','stay_id','StudyDateTime','dicom_id','study_id']]
+        
+    
     
     ############################## Create the datasets for each steps ##############################
     
     random_seed=args.random_seed
-    samll_latest=AP_bf_selected_latest[['subject_id','stay_id','study_id','dicom_id','cha','mortality_inhospital']]
+    small_latest=AP_bf_selected_latest[['subject_id','stay_id','study_id','dicom_id','cha','mortality_inhospital']]
     
     eps=0.03
-    total_icu_stay=len(samll_latest)
-    mort_rate=samll_latest[samll_latest.mortality_inhospital==0].subject_id.nunique()/samll_latest[samll_latest.mortality_inhospital==1].subject_id.nunique()
+    
+    mort_rate=len(small_latest[small_latest.mortality_inhospital==0])/len(small_latest[small_latest.mortality_inhospital==1])
 
     ### split by subject id
-    subject_id=list(samll_latest.subject_id.unique())
+    subject_id=list(small_latest.subject_id.unique())
     train_val,test=train_test_split(subject_id, test_size=0.2,random_state=random_seed)
     train,val=train_test_split(train_val, test_size=1/7, random_state=random_seed)
 
@@ -164,9 +172,9 @@ if __name__ == '__main__':
     test_df=pd.DataFrame(data={'subject_id':test})
     
     ### Build the dataset for prediction
-    train_df=pd.merge(train_df,samll_latest,on='subject_id',how='left')
-    val_df=pd.merge(val_df,samll_latest,on='subject_id',how='left') 
-    test_df=pd.merge(test_df,samll_latest,on='subject_id',how='left')
+    train_df=pd.merge(train_df,small_latest,on='subject_id',how='left')
+    val_df=pd.merge(val_df,small_latest,on='subject_id',how='left') 
+    test_df=pd.merge(test_df,small_latest,on='subject_id',how='left')
 
     print('********************************')
     print('icu stay number')
@@ -180,7 +188,6 @@ if __name__ == '__main__':
     print(sum(train_df['mortality_inhospital']==0)/sum(train_df['mortality_inhospital']==1))
     print(sum(val_df['mortality_inhospital']==0)/sum(val_df['mortality_inhospital']==1))
     print(sum(test_df['mortality_inhospital']==0)/sum(test_df['mortality_inhospital']==1))
-
     
     splitted_df={'train':train_df,'validate':val_df,'test':test_df}
     
@@ -203,35 +210,10 @@ if __name__ == '__main__':
         pred_df_add_satic_add_pheno.to_csv(os.path.join(args.output_csv_dir,f'{s}_pred.csv'))
 
     
-    
-    ### Build  dataset for Autoencoder
-    
-    total_cxr_AP=cxr[(cxr['ViewPosition']=='AP')].dropna(subset=['ViewPosition'])[['subject_id','study_id','dicom_id']]
-    cols=[ 'subject_id','study_id','Atelectasis', 'Cardiomegaly',
-       'Consolidation', 'Edema', 'Enlarged Cardiomediastinum', 'Fracture',
-       'Lung Lesion', 'Lung Opacity',  'Pleural Effusion',
-       'Pleural Other', 'Pneumonia', 'Pneumothorax', 'Support Devices', 'No Finding']
-    disease_cols=cols[2:]
-    chexpert=pd.read_csv(os.path.join(args.mimic_cxr_jpg_dir,'mimic-cxr-2.0.0-chexpert.csv'))[cols]
-
-    for s in ['train','validate','test']:
-        
-        subjects=splitted_df[s].subject_id.unique()
-        valid_cxr=total_cxr_AP[total_cxr_AP.subject_id.isin(subjects)]
-
-        # merge with chexpert to get the chexpert labels
-        df_merger_label=pd.merge(valid_cxr,chexpert,on=['subject_id','study_id'],how='left')
-        print(f"length of {s} subset for autoencoder:",len(df_merger_label))
-        # 0: uncertain, 1: negative, 2: positive 3: not mentioned
-        df_merger_label=df_merger_label.fillna(3)
-        df_merger_label[disease_cols]=df_merger_label[disease_cols].replace(1,2).replace(0,1).replace(-1,0)
-
-        df_merger_label.to_csv(os.path.join(args.output_csv_dir,f'{s}_autoencoder_augmented_label.csv'))
-
-    
     ### Build the dataset for DM
     from itertools import combinations
-    result={'subject_id':[],'stay_id':[],'x0_time':[],'x0_study_id':[],'x0_dicom_id':[],'x1_time':[],'x1_dicom_id':[],'x1_study_id':[]}
+    result={'subject_id':[],'stay_id':[],'x0_time':[],'x0_dicom_id':[],'x1_time':[],'x1_dicom_id':[],}
+    
     def create_combinations(group):
         # print(group)
         if len(group)>1:
@@ -244,14 +226,14 @@ if __name__ == '__main__':
                 result['stay_id'].append(x0.stay_id)
                 result['x0_time'].append(x0.StudyDateTime)
                 result['x1_time'].append(x1.StudyDateTime)
-                result['x0_study_id'].append(x0.study_id)
-                result['x1_study_id'].append(x1.study_id)
                 result['x0_dicom_id'].append(x0.dicom_id)
                 result['x1_dicom_id'].append(x1.dicom_id)
     
-           
-    AP_bf_selected_sorted=AP_bf_selected_small.sort_values(['subject_id','stay_id','study_id','StudyDateTime'],ascending=True)     
-    AP_bf_selected_sorted.groupby(['subject_id', 'stay_id']).apply(create_combinations)
+    
+    AP_bf_selected_small_dm=AP_bf_selected[['subject_id','stay_id','StudyDateTime','dicom_id']]
+    AP_bf_selected_sorted_dm=AP_bf_selected_small_dm.sort_values(['subject_id','stay_id','StudyDateTime'],ascending=True)
+
+    AP_bf_selected_sorted_dm.groupby(['subject_id', 'stay_id']).apply(create_combinations)
 
     dm_df=pd.DataFrame(data=result)
     dm_df['cha']=dm_df[["x0_time","x1_time"]].apply(lambda x:(x["x1_time"]-x["x0_time"])/one_day*24, axis=1)
@@ -260,8 +242,10 @@ if __name__ == '__main__':
     dm_df_selected=dm_df[dm_df.cha>12]
     
     # get ehr length field
-    dm_df_selected=pd.merge(dm_df_selected,all_stay,on=['subject_id','stay_id'], how='left')[['subject_id','stay_id','x0_time', 'x0_dicom_id', 'x0_study_id','x1_time',
-        'x1_dicom_id','x1_study_id','intime']]
+    
+    dm_df_selected=pd.merge(dm_df_selected,all_stay,on=['subject_id','stay_id'], how='left')[['subject_id','stay_id','x0_time', 'x0_dicom_id', 'x1_time',
+        'x1_dicom_id','intime']]
+
 
     timestep=1
     dm_df_selected['ehr_len']=0
@@ -293,22 +277,19 @@ if __name__ == '__main__':
     for s in ['train','validate','test']:
         dm_split=pd.merge(splitted_df[s],dm_df_selected_ehr,
                         on=['subject_id','stay_id'],how='left')
-        # # print(dm_split.columns)
+        
         # # for prediction one cxr is okay, but for dm training it is not okay
         # # so there will be nan
         dm_split.dropna(inplace=True)
-        # dm_split=pd.merge(dm_split, cxr_AP,left_on=['subject_id','x0_dicom_id'],
-        #                     right_on=['subject_id','dicom_id'], how='left')
-        # # print(dm_split.columns)
-        # dm_split=pd.merge(dm_split, cxr_AP,left_on=['subject_id','x1_dicom_id'],
-        #                     right_on=['subject_id','dicom_id'], how='left')
-        # # print(dm_split.columns)
-
-        # dm_split.rename(columns={'study_id_y':'x0_study_id','study_id':'x1_study_id'},inplace=True)
+        dm_split=pd.merge(dm_split, cxr_AP,left_on=['subject_id','x0_dicom_id'],
+                            right_on=['subject_id','dicom_id'], how='left')
         
-
+        dm_split=pd.merge(dm_split, cxr_AP,left_on=['subject_id','x1_dicom_id'],
+                            right_on=['subject_id','dicom_id'], how='left')
+        
+        dm_split.rename(columns={'study_id_y':'x0_study_id','study_id':'x1_study_id'},inplace=True)
+        
         dm_split['left_time']=dm_split[['x0_time','intime']].apply(lambda x:(x['x0_time']-x['intime'])/one_day*24, axis=1)
-
         dm_split['right_time']=dm_split[['x1_time','intime']].apply(lambda x:(x['x1_time']-x['intime'])/one_day*24, axis=1)
 
         dm_split_small=dm_split[['subject_id',
@@ -324,7 +305,6 @@ if __name__ == '__main__':
 
         dm_split_add_satic=pd.merge(dm_split_small,patients,on='subject_id',how='left')
         dm_split_add_satic.columns
-
         dm_split_add_satic['Age']=dm_split_add_satic.anchor_age
         dm_split_add_satic.loc[dm_split_add_satic.Age<0,'Age']=90
         dm_split_add_satic['Gender']=dm_split_add_satic.gender
@@ -337,7 +317,6 @@ if __name__ == '__main__':
                                 'left_time','right_time',
                                 'mortality_inhospital',
                                             "Gender","Age"
-
                                 ]].reset_index()
         
         
@@ -354,6 +333,25 @@ if __name__ == '__main__':
         dm_x0_x1_chexpert[disease_cols_dm]=dm_x0_x1_chexpert[disease_cols_dm].replace(1,2).replace(0,1).replace(-1,0)
         print(f'length of {s} subset for ldm: {len(dm_x0_x1_chexpert)}')
         dm_x0_x1_chexpert.to_csv(os.path.join(args.output_csv_dir,f'{s}_dm_labels.csv'))
+
+    
+    ### Build  dataset for Autoencoder
+    print("********************************")
+    total_cxr_AP=cxr[(cxr['ViewPosition']=='AP')].dropna(subset=['ViewPosition'])[['subject_id','study_id','dicom_id']]
+    
+    for s in ['train','validate','test']:
+        dm_subdataset=pd.read_csv(os.path.join(args.output_csv_dir,f'{s}_dm_labels.csv'))
+        subjects=dm_subdataset.subject_id.unique()
+        valid_cxr=total_cxr_AP[total_cxr_AP.subject_id.isin(subjects)]
+
+        # merge with chexpert to get the chexpert labels
+        df_merger_label=pd.merge(valid_cxr,chexpert,on=['subject_id','study_id'],how='left')
+        print(f"length of {s} subset for autoencoder:",len(df_merger_label))
+        # 0: uncertain, 1: negative, 2: positive 3: not mentioned
+        df_merger_label=df_merger_label.fillna(3)
+        df_merger_label[disease_cols]=df_merger_label[disease_cols].replace(1,2).replace(0,1).replace(-1,0)
+
+        df_merger_label.to_csv(os.path.join(args.output_csv_dir,f'{s}_autoencoder_augmented_label.csv'))
 
     
     
