@@ -199,3 +199,15 @@ The generated latent CXR would be stored in the `{metadata_path}/{train/validate
       data.params.test.params.metadata_path=$metadata_path \
       data.params.batch_size=$batch_size
    ```
+
+## Comments
+
+- The EHR processing code builds on [MedFuse](https://github.com/nyuad-cai/MedFuse/).
+- Our codebase for the diffusion models builds heavily on [latent-diffusion](https://github.com/CompVis/latent-diffusion). 
+- The implementation of the length variable EHR encoder is based on [mvts_transformer](https://github.com/gzerveas/mvts_transformer/).
+
+Thanks for open-sourcing!
+
+## BibTex
+
+> 
