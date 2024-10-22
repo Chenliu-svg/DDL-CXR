@@ -1,0 +1,115 @@
+model:
+  base_learning_rate: 2.0e-06
+  target: ldm.models.diffusion.ddpm.DDL_CXR_DEMO
+  params:
+    save_dir: generated_demo_cxr
+    linear_start: 0.0015
+    linear_end: 0.0195
+    num_timesteps_cond: 1
+    log_every_t: 200
+    timesteps: 1000
+    image_size: 28
+    channels: 4
+    monitor: val/simple_loss_ema
+    cond_stage_trainable: False
+    parameterization: "eps"
+    conditioning_key: 'hybrid'
+    triplet_weight: 1
+    margin: 0.2
+    ckpt_path: /root/autodl-tmp/logs/2024-05-19T17-55-25_ldm_cfg/checkpoints/epoch=000067.ckpt
+    
+    num_classes: 14
+    ehr_encoder_dim: 128
+    label_loss_wight: 1.4
+    ddim_step: 200
+    max_epoch: 200
+    offline_partition: train
+    unet_config:
+      target: ldm.modules.diffusionmodules.openaimodel.UNetModel
+      params:
+        image_size: 28
+        in_channels: 8
+        out_channels: 4
+        model_channels: 224
+        attention_resolutions:
+          - 4
+          - 2
+          - 1
+        num_res_blocks: 2
+        channel_mult:
+          - 1
+          - 2
+          - 4
+        num_heads: 8
+        use_spatial_transformer: true
+        transformer_depth: 1
+        context_dim: 128 # context_dim= d_model= hidden_size
+        num_head_channels: 16
+        use_checkpoint: true
+        legacy: False
+
+    first_stage_config:
+      target: ldm.models.autoencoder.AutoencoderKLLabel
+      params:
+        # image_key: 0
+        embed_dim: 4
+        z0_view_size: 3136
+        
+        # ckpt_path: /root/autodl-fs/large_drop_adapt_decay/checkpoints/epoch=000016.ckpt
+        ddconfig:
+          double_z: True
+          z_channels: 4
+          resolution: 224
+          in_channels: 3
+          out_ch: 3
+          ch: 128
+          ch_mult: [ 1,2,4,4 ]  # num_down = len(ch_mult)-1
+          num_res_blocks: 2
+          attn_resolutions: [ ]
+          dropout: 0.2
+        lossconfig:
+          target: torch.nn.Identity
+
+
+    cond_stage_config:
+      target: ldm.models.ts_transformer.TSTransformerEncoder
+
+      params:
+        feat_dim: 79
+        max_len: 70
+        d_model: 128 
+        n_heads: 8 
+        num_layers: 1
+        dim_feedforward: 256
+        hid_dim_1: 128
+        pos_weight: 4.15
+        num_classes: 1
+        monitor: "val/pr_auc"
+        mode: max
+        dropout: 0.2
+        pool: cls
+        
+data:
+  target: main.DataModuleFromConfig
+  params:
+    batch_size: 48
+    num_workers: 32
+    wrap: True
+    dataset_mode: ldm_label
+    train:
+      target: ldm.data.dynamic_data.Generate_CXR
+      params:
+        partition: "test"
+        mimic_cxr_jpg_dir: /root/autodl-tmp/dynamic_new/dynamic_cxr
+        metadata_path: ./data/
+
+
+
+lightning:
+  trainer:
+    benchmark: True
+    max_epochs: 200
+    num_sanity_val_steps: 0
+    deterministic: True
+
+

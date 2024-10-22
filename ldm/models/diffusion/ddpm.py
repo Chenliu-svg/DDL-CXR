@@ -1433,8 +1433,6 @@ class LatentDiffusion(DDPM):
         return x
 
 
-
-
 class DDL_CXR_LDM(LatentDiffusion):
     """
     LDM cond on z0 and ehr. Ehr encoder(length-variable) is trained using Chexpert labels. LDM is trained in a contrastive way.
@@ -1778,7 +1776,51 @@ class DDL_CXR_LDM(LatentDiffusion):
                 for id in range(b):
                     f.create_dataset(f'{sample_id[id]}', data=generated_z1[id].cpu().numpy())
             
-       
+class DDL_CXR_DEMO(DDL_CXR_LDM):
+    def __init__(self,
+                 save_dir,
+                 *args, **kwargs):
+        
+        super().__init__( *args, **kwargs)
+        self.save_dir=save_dir
+        
+    def test_step(self,batch , batch_idx):
+        images = dict()
+        z0, z1, ehr,masks,ehr_y, x0, x1, x1_decode = self.get_input(batch,
+                                                                return_first_stage_outputs=True,
+                                                                )
+        encoded_ehr = self.get_learned_conditioning(ehr,masks)[1]
+        
+    
+        x_T_fixed=torch.randn_like(z1[0])
+        x_T_fixed=self.global_noise.repeat(z0.shape[0],1,1,1).to(self.device)
+        generated_z1 = self.predict(encoded_ehr=encoded_ehr, z0=z0,x_T=x_T_fixed)
+
+        decoded_generated_z1=self.decode_first_stage(generated_z1)
+        zs={'generated_x1':decoded_generated_z1,'gt_x1':x1,'x0':x0}
+        
+        for idx in range(z0.shape[0]):
+            length=sum(masks[idx])-1
+            
+            for k,v in zs.items():
+                
+                img = v[idx]
+                if isinstance(img, torch.Tensor):
+                    img = img.detach().cpu()
+                    img = torch.clamp(img, -1., 1.)
+                img = (img + 1.0) / 2.0  # -1,1 -> 0,1; c,h,w
+                img = img.transpose(0, 1).transpose(1, 2).squeeze(-1)
+                img = img.numpy()
+                img = (img * 255).astype(np.uint8)
+                filename = f"{batch_idx}-{k}-{idx}-ehr_length:{length}.png"
+                path = os.path.join(self.save_dir, filename)
+                os.makedirs(os.path.split(path)[0], exist_ok=True)
+                Image.fromarray(img).convert("RGB").save(path)
+
+               
+
+                
+
 
 class DiffusionWrapper(pl.LightningModule):
     def __init__(self, diff_model_config, conditioning_key):

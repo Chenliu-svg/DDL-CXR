@@ -151,9 +151,9 @@ Specify the required data path  following instructions in [`pre_processing.py`](
    ```shell
 
       NAME="name_for_the_run"  
-      dm_ckpt="path_to_your_checkpoint"  
-      mimic_cxr_jpg_dir="path_to_mimic_cxr_jpg" 
-      metadata_path="path_to_metadata"  
+      dm_ckpt="path/to/your/checkpoint"  
+      mimic_cxr_jpg_dir="path/to/mimic_cxr_jpg" 
+      metadata_path="path/to/metadata"  
 
       for partition in 'train' 'test' 'validation'
       do
@@ -171,6 +171,29 @@ Specify the required data path  following instructions in [`pre_processing.py`](
    ```
 The generated latent CXR would be stored in the `{metadata_path}/{train/validate/test}_z1_for_pred.h5` accordingly.
 
+### Generate CXR using DDL-CXR
+Although we focus on generating the latent CXR for the downstream prediction tasks, we still decode the latent CXR to CXR images for quality evaluation. Try the following code to generate the up-to-date CXR image.
+```shell
+   NAME="generate_cxr_image"
+   batch_size=4
+   mimic_cxr_jpg_dir="path/to/mimic_cxr_jpg" 
+   metadata_path="path/to/metadata"
+   dm_ckpt="path/to/your/checkpoint"
+   save_dir="path/to/save/the/generated/cxr/iamges"  
+      
+   
+   python main.py \
+      --base configs/latent-diffusion/LDM_generate_cxr.yaml \
+      --gpu 0,\
+      --train False \
+      --name $NAME \
+      model.params.ckpt_path=$dm_ckpt \
+      model.params.save_dir=$save_dir \
+      data.params.test.params.mimic_cxr_jpg_dir=$mimic_cxr_jpg_dir \
+      data.params.test.params.metadata_path=$metadata_path \
+      data.params.batch_size=$batch_size 
+```
+
 ## STEP3.Prediction
 
    ```shell
@@ -178,9 +201,8 @@ The generated latent CXR would be stored in the `{metadata_path}/{train/validate
    NAME="name_for_the_run"
    LOGDIR="/path/to/logdir"
    batch_size=64
-   mimic_cxr_jpg_dir="path_to_mimic_cxr_jpg" 
-   metadata_path="path_to_metadata"
-
+   mimic_cxr_jpg_dir="path/to/mimic_cxr_jpg" 
+   metadata_path="path/to/metadata"
    python main.py \
       --base configs/Prediction/Pred_fusion.yaml \
       -t \

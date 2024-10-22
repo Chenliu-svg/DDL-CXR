@@ -457,6 +457,85 @@ class GenerateZ1(Dataset):
         return sample_id, x_0, ehr
 
 
+class Generate_CXR(Dataset):
+    """
+    params:
+        partition: train, validate, test
+        mimic_cxr_jpg_dir: image path to mimic cxr jpg files
+        metadata_path: where the meta csv files, ehr pikle files are
+        
+    """
+
+    def __init__(self,
+                 mimic_cxr_jpg_dir,
+                 partition='test',
+                 metadata_path='./data/',
+                 resize=224,
+                 crop=224,
+                 ):
+        
+        super().__init__()
+        self.mimic_cxr_jpg_dir = mimic_cxr_jpg_dir
+        
+        self.metadata_path=metadata_path
+        self.data_df = pd.read_csv(os.path.join(self.metadata_path, f'{partition}_dm_labels.csv'))
+        
+        test_transforms=self.get_transforms(resize,crop)
+        self.transform= transforms.Compose(test_transforms)
+        
+        # ehr 
+        print(f'Loading EHR data from {partition}_ehr_dm.pkl')
+        with open(os.path.join(self.metadata_path, f'{partition}_ehr_dm.pkl'), 'rb') as f:
+            self.processed_ehr = pickle.load(f)
+        
+    def __len__(self):
+        return len(self.data_df)
+
+
+
+    def __getitem__(self, index):
+          
+        subject_id = self.data_df.loc[index, 'subject_id']
+        sample_id = self.data_df.loc[index, 'index']
+        ehr=self.processed_ehr[str(sample_id)]
+        
+        study_id = self.data_df.loc[index, 'x0_study_id']
+        dicom_id = self.data_df.loc[index, 'x0_dicom_id']
+        x_0_path = f'p{str(subject_id)[:2]}/p{subject_id}/s{study_id}/{dicom_id}.jpg'
+        # x_0_path = f'{dicom_id}.jpg'
+        abs_x_0_path = os.path.join(self.mimic_cxr_jpg_dir, x_0_path)
+        
+        x_0 = Image.open(abs_x_0_path).convert('RGB')
+        x_0 = self.transform(x_0)
+
+        study_id = self.data_df.loc[index, 'x1_study_id']
+        dicom_id = self.data_df.loc[index, 'x1_dicom_id']
+        x_1_path = f'p{str(subject_id)[:2]}/p{subject_id}/s{study_id}/{dicom_id}.jpg'
+        # x_1_path = f'{dicom_id}.jpg'
+        abs_x_1_path = os.path.join(self.mimic_cxr_jpg_dir, x_1_path)
+        
+        x_1 = Image.open(abs_x_1_path).convert('RGB')
+        x_1 = self.transform(x_1)
+
+        # get labels
+        ehr_y=torch.tensor(list(self.data_df.loc[index,X1_CLASSES_DM].values))
+
+        return (ehr, x_0, x_1, ehr_y, sample_id)
+    
+
+
+    def get_transforms(self,resize,crop):
+       
+        normalize = transforms.Normalize(mean=0.5, std=0.5)
+        test_transforms = []
+        test_transforms.append(transforms.Resize(resize))
+        test_transforms.append(transforms.CenterCrop(crop))
+        test_transforms.append(transforms.ToTensor())
+        test_transforms.append(normalize)
+
+        return test_transforms
+
+
 
         
 class PredictDataset(Dataset):
