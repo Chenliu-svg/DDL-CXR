@@ -1783,7 +1783,8 @@ class DDL_CXR_DEMO(DDL_CXR_LDM):
         
         super().__init__( *args, **kwargs)
         self.save_dir=save_dir
-        
+    
+    @torch.no_grad()
     def test_step(self,batch , batch_idx):
         images = dict()
         z0, z1, ehr,masks,ehr_y, x0, x1, x1_decode = self.get_input(batch,

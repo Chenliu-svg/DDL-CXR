@@ -194,6 +194,8 @@ Although we focus on generating the latent CXR for the downstream prediction tas
       data.params.batch_size=$batch_size 
 ```
 
+In the `save_dir` the reference CXR is named by `{batch_idx}-x0-{idx}-ehr_length:{length}.png`,ground truth CXR is by `{batch_idx}-gt_x1-{idx}-ehr_length:{length}.png`, and the generated CXR is named by `{batch_idx}-generated_x1-{idx}-ehr_length:{length}.png`.
+
 ## STEP3.Prediction
 
    ```shell

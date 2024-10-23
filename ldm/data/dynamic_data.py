@@ -480,6 +480,10 @@ class Generate_CXR(Dataset):
         self.metadata_path=metadata_path
         self.data_df = pd.read_csv(os.path.join(self.metadata_path, f'{partition}_dm_labels.csv'))
         
+        # fo test
+        # self.data_df=self.data_df[self.data_df['subject_id'].astype(str).str.startswith('10')]
+        # print(len(self.data_df))
+        
         test_transforms=self.get_transforms(resize,crop)
         self.transform= transforms.Compose(test_transforms)
         
@@ -494,7 +498,7 @@ class Generate_CXR(Dataset):
 
 
     def __getitem__(self, index):
-          
+        # index=2
         subject_id = self.data_df.loc[index, 'subject_id']
         sample_id = self.data_df.loc[index, 'index']
         ehr=self.processed_ehr[str(sample_id)]

@@ -96,7 +96,7 @@ data:
     num_workers: 32
     wrap: True
     dataset_mode: ldm_label
-    train:
+    test:
       target: ldm.data.dynamic_data.Generate_CXR
       params:
         partition: "test"
