@@ -234,4 +234,11 @@ Thanks for open-sourcing!
 
 ## BibTex
 
-> 
+```
+@article{yao2024addressing,
+  title={Addressing Asynchronicity in Clinical Multimodal Fusion via Individualized Chest X-ray Generation},
+  author={Yao, Wenfang and Liu, Chen and Yin, Kejing and Cheung, William K and Qin, Jing},
+  journal={arXiv preprint arXiv:2410.17918},
+  year={2024}
+}
+```
