@@ -76,7 +76,7 @@ Specify the required data path  following instructions in [`pre_processing.py`](
    --output_csv_dir $metadata_path
    ```
 
-4. pickle the EHR for LDM stage and prediction stage for faster EHR retrieval
+4. pickle the EHR for LDM stage and prediction stage(including z1 generation and final prediction) for faster EHR retrieval
 
    ```bash
    
@@ -88,7 +88,7 @@ Specify the required data path  following instructions in [`pre_processing.py`](
    --mimic_iv_subjects_dir $mimic_iv_subjects_dir
    ```
 
-   The pickled EHR files for ldm is saved in `$metadata_path/{train/validate/test}_ehr_dm.pkl`, and `$metadata_path/{train/validate/test}_ehr_pred.pkl` for prediction.
+   The pickled EHR files for ldm is saved in `$metadata_path/{train/validate/test}_ehr_dm.pkl`, `$metadata_path/{train/validate/test}_ehr_gen.pkl` and `$metadata_path/{train/validate/test}_ehr_pred.pkl` for prediction.
 
 ## STEP1: Autoencoder
 
@@ -113,7 +113,7 @@ Specify the required data path  following instructions in [`pre_processing.py`](
       data.params.batch_size=$batch_size
    ```
 
-   You can skip the training by download our model from [DDL-CXR-VAE]().
+   <!-- You can skip the training by download our model from [DDL-CXR-VAE](). -->
 
 
 ## STEP2: LDM
@@ -144,7 +144,7 @@ Specify the required data path  following instructions in [`pre_processing.py`](
       
 ```
 
-   You can skip the training by download our model from [DDL-CXR-LDM]().
+   <!-- You can skip the training by download our model from [DDL-CXR-LDM](). -->
 
 ### Generate latent cxr for prediction
 

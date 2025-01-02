@@ -175,7 +175,7 @@ class VAE_Dataset(Dataset):
 class EHR_Pickler():
     """
     params:
-        stage: ldm or prediction
+        stage: ldm, generation or prediction
         metadata_path:  where the meta csv files are
         mimic_iv_subjects_dir: The path to the processed mimic-iv subjects files, where the  `{subject_id}/episode{stay_id}_timeseries.csv` is.
     """
@@ -252,9 +252,8 @@ class EHR_Pickler():
             print(list(ts.values())[0].shape)
             print('done!')
             print(len(ts_dict))
-
-
-    def _ehr_pickle_pred(self):
+            
+    def _ehr_pickle_gen(self):
         for s in ['train','validate','test']:
             data_df = pd.read_csv(os.path.join(self.metadata_path, f'{s}_{self.csv_suffix}.csv'))
             ts_dict={}
@@ -284,6 +283,43 @@ class EHR_Pickler():
                 
                 ts_dict[sample_id]=ehr
             
+            with open(os.path.join(self.metadata_path,f'{s}_ehr_gen.pkl'), 'wb') as f:
+                pickle.dump(ts_dict, f)
+                
+            print(f'Loading ehr file ')
+            with open(os.path.join(self.metadata_path,f'{s}_ehr_gen.pkl'), 'rb') as f:
+                ts = pickle.load(f)
+            print(list(ts.values())[0].shape)
+            print('done!')
+            print(len(ts_dict))
+       
+
+    def _ehr_pickle_pred(self):
+        for s in ['train','validate','test']:
+            data_df = pd.read_csv(os.path.join(self.metadata_path, f'{s}_{self.csv_suffix}.csv'))
+            ts_dict={}
+            for _, row in data_df.iterrows():
+                sample_id=str(row['index'])
+                subject_id = row['subject_id']
+                stay_id = row['stay_id']
+                cha=row['cha']
+                age = row['Age']
+                gender = row['Gender']
+                
+                
+                ts_df = pd.read_csv(os.path.join(self.mimic_iv_subjects_dir, str(subject_id), f'episode{stay_id}_timeseries.csv'))
+
+                ts_interval = ts_df[(ts_df.Hours >= 0) & (
+                        ts_df.Hours <= 48)].reset_index(drop=True).fillna("").values
+                ## add static
+                ts_interval = np.c_[ts_interval, np.ones(ts_interval.shape[0]) * gender]
+                ts_interval = np.c_[ts_interval, np.ones(ts_interval.shape[0]) * age]
+                ## discrete and normalize
+                ts_data = self.discretizer.transform(ts_interval, end=self.discret_end)[0]
+                ehr = torch.from_numpy(self.normalizer.transform(ts_data))
+                
+                ts_dict[sample_id]=ehr
+            
             with open(os.path.join(self.metadata_path,f'{s}_ehr_pred.pkl'), 'wb') as f:
                 pickle.dump(ts_dict, f)
                 
@@ -297,6 +333,8 @@ class EHR_Pickler():
     def pickle_ehr(self):
         if self.stage=='prediction':
             return self._ehr_pickle_pred()
+        elif self.stage=='generation':
+            return self._ehr_pickle_gen()
         else:
             return self._ehr_pickle_dm() 
 
@@ -425,8 +463,8 @@ class GenerateZ1(Dataset):
                           transforms.Normalize(mean=0.5, std=0.5)])
 
         # ehr 
-        print(f'Loading EHR data from {partition}_ehr_pred.pkl')
-        with open(os.path.join(self.metadata_path, f'{partition}_ehr_pred.pkl'), 'rb') as f:
+        print(f'Loading EHR data from {partition}_ehr_gen.pkl')
+        with open(os.path.join(self.metadata_path, f'{partition}_ehr_gen.pkl'), 'rb') as f:
             self.processed_ehr = pickle.load(f)
 
 

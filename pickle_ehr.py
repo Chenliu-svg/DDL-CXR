@@ -24,6 +24,11 @@ if __name__ == '__main__':
     ldm_picler=EHR_Pickler(stage='ldm',metadata_path=args.metadata_path,mimic_iv_subjects_dir=args.mimic_iv_subjects_dir)
     ldm_picler.pickle_ehr()
     
+    # pickle ehr for generation
+    gen_picler=EHR_Pickler(stage='generation',metadata_path=args.metadata_path,mimic_iv_subjects_dir=args.mimic_iv_subjects_dir)
+    gen_picler.pickle_ehr()
+    
+    # pikcle ehr for prediction
     pred_picler=EHR_Pickler(stage='prediction',metadata_path=args.metadata_path,mimic_iv_subjects_dir=args.mimic_iv_subjects_dir)
     pred_picler.pickle_ehr()
     

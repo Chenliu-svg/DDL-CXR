@@ -38,6 +38,241 @@ class PatchEmbedding(nn.Module):
         return x
 
 
+# CNN, padding, Transformer
+class ResnetMultiCXR(pl.LightningModule):
+    def __init__(self,  
+                 task,  
+                 VAE_config=None,
+                 vision_backbone='resnet34',    
+                 pretrained=True,    
+                 ehr_encoder_config=None,     
+                 fusion_config=None,    
+                 hidden_size=128,    
+                 hid_dim_1=1024,    
+                 dropout=0.1,    
+                 drop_cxr=0.0,    
+                 ): 
+        pass
+
+class ResnetCXR(pl.LightningModule):
+    def __init__(self,
+                 task,
+                 VAE_config=None,
+                 vision_backbone='resnet34',
+                 pretrained=True,
+                 ehr_encoder_config=None,     
+                 fusion_config=None, 
+                 hidden_size=128,
+                 hid_dim_1=1024,
+                 dropout=0.1,
+                 drop_cxr=0.0,
+                 ):
+        
+        super().__init__(task)
+
+        self.task = task
+
+class ResnetMultiCxrEHR(pl.LightningModule):
+    def __init__(self,
+                 task,
+                 VAE_config=None,
+                 vision_backbone='resnet34',
+                 pretrained=True,
+                 ehr_encoder_config=None,     
+                 fusion_config=None, 
+                 hidden_size=128,
+                 hid_dim_1=1024,
+                 dropout=0.1,
+                 drop_cxr=0.0,
+                 ):
+        
+        super().__init__(task)
+
+        self.task = task
+        if self.task=='mortality':    
+            pos_weight = torch.tensor([5.89])    
+            num_classes=1    
+        if self.task=='phenotype':    
+            pos_weight = torch.tensor([1.0])    
+            num_classes=1    
+          
+
+class ResnetCxrEHR(pl.LightningModule):
+    def __init__(self,
+                 task,
+                 fusion_way,
+                 latent_cxr=False,
+                 VAE_config=None,
+                 vision_backbone='resnet34',
+                 pretrained=True,
+                 ehr_encoder_config=None,     
+                 fusion_config=None, 
+                 hidden_size=128,
+                 hid_dim_1=1024,
+                 dropout=0.1,
+                 drop_cxr=0.0,
+                 
+                 mode='max',          
+                 max_epoch=100,
+                 ckpt_path=None,
+                 ignore_keys=[]
+                 ):
+        
+        super().__init__(task)
+
+        self.fusion_way=fusion_way
+        self.mode = mode
+        self.task = task
+        self.max_epoch=max_epoch
+        self.monitor='val/pr_auc'
+
+
+        if self.task=='mortality':
+            pos_weight = torch.tensor([5.89])
+            num_classes=1
+            
+        if self.task=='phenotype':
+            pos_weight = torch.tensor([1.66, 10.01, 10.45, 1.51, 3.09, 4.98, 3.22, 7.85, 2.07, 2.2, 6.96, 3.81, 1.51, 1.28, 0.92, 13.53, 3.55, 4.72, 6.16, 12.68, 8.3, 3.48, 1.95, 2.71, 3.44])
+            # pos_weight =torch.ones(25)
+            num_classes=25
+            
+        self.loss = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+        self.num_classes = num_classes
+
+        # self.subgroup=[(0,12),(12,19),(19,32),(32,47),(47,71)]
+        # self.test_df=pd.read_csv(test_pred_path)
+
+        
+        self.ehr_encoder=instantiate_from_config(ehr_encoder_config)
+
+        self.vision_backbone = getattr(torchvision.models, vision_backbone)(pretrained=pretrained)
+        classifiers = [ 'classifier', 'fc']
+        for classifier in classifiers:
+            cls_layer = getattr(self.vision_backbone, classifier, None)
+            if cls_layer is None:
+                continue
+            d_visual = cls_layer.in_features
+            setattr(self.vision_backbone, classifier, nn.Identity(d_visual))
+            break
+        
+        self.cxr_feat_project=nn.Sequential(nn.Linear(d_visual, hidden_size),
+                            nn.GELU(),nn.Dropout(drop_cxr))
+ 
+        if fusion_way=='attention':
+            self.fusion_tf=instantiate_from_config(fusion_config)
+
+        
+        
+        
+        ################## correspond to experiment 13,14,15 in the table ###################
+        if fusion_way=='concat':
+            self.concat_linear=nn.Sequential(nn.Linear(hidden_size*2, hidden_size),
+                            nn.GELU(),nn.Dropout(drop_cxr))
+
+
+        self.mlp_head  = nn.Sequential(nn.Linear(hidden_size, hid_dim_1),
+                              nn.GELU(),
+                              nn.Dropout(dropout),
+                              nn.Linear(hid_dim_1,  self.num_classes)
+                              )
+        # self.mlp_head = nn.Linear(hidden_size, self.num_classes)
+        self.latent_cxr=latent_cxr
+        if latent_cxr:
+            assert VAE_config is not None
+            self.instantiate_decoder(VAE_config)
+
+
+        if ckpt_path is not None:
+            self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
+
+    def instantiate_decoder(self, config):
+        model = instantiate_from_config(config)
+        self.first_stage_model = model.eval()
+        self.first_stage_model.train = disabled_train
+        for param in self.first_stage_model.parameters():
+            param.requires_grad = False
+
+    @torch.no_grad()
+    def get_input(self, batch):
+
+        ehr = torch.stack(list(map(lambda x: x[0], batch)), dim=0)
+        ehr = ehr.to(self.device)
+
+        
+        y= torch.stack(list(map(lambda x: x[1], batch)),dim=0)
+        y = y.to(self.device).float()
+
+        x = torch.stack(list(map(lambda x: x[2], batch)), dim=0)
+        x = x.to(memory_format=torch.contiguous_format)
+        x = x.to(self.device)
+
+        if self.latent_cxr:
+            x=self.first_stage_model.decode(x)
+
+        sample_id=torch.tensor(list(map(lambda x: x[3], batch)))
+        sample_id = sample_id.to(self.device)
+
+        return ehr, y, x, sample_id
+
+    def forward(self, ehr=None, x=None ) -> Any:
+
+        # encode ehr
+        cls_ehr,_=self.ehr_encoder.encode(ehr)
+        cls_ehr=cls_ehr.squeeze()
+        # encode cxr
+        visual_feats = self.vision_backbone(x)
+        cls_cxr = self.cxr_feat_project(visual_feats)
+
+        # fusion
+        cls = torch.cat([cls_ehr, cls_cxr], dim=-1)
+        assert self.fusion_way=='concat'
+        fused_cls=self.concat_linear(cls)
+
+        # predict
+        ret = self.mlp_head(fused_cls).squeeze(dim=1)
+        return ret
+            
+       
+
+
+       
+    def training_step(self, batch,batch_idx):
+            
+        ehr, target, x,_= self.get_input(batch)
+        output = self(ehr=ehr, x=x)
+        
+        loss = self.loss(output, target)
+
+        self.log("train/loss", loss, prog_bar=True, logger=True, on_step=True, on_epoch=True,
+                batch_size=target.shape[0])
+
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+
+        ehr, target, x,_= self.get_input(batch)
+        output = self(ehr=ehr, x=x)
+        
+        
+        CEloss = self.loss(output, target)
+
+        
+        preds = torch.sigmoid(output)
+
+        return {'val_loss': CEloss, 'target': target, 'preds': preds}
+
+    def test_step(self, batch, batch_idx) :
+
+        ehr, target, x,sample_id= self.get_input(batch)
+        output = self(ehr=ehr, x=x)
+        
+        CEloss = self.loss(output, target)
+
+       
+        preds = torch.sigmoid(output)
+
+        return {'test_loss': CEloss, 'target': target, 'preds': preds, 'sample_id':sample_id}
+
 
 class FusionTokens3inputAttnFuse(pl.LightningModule):
     """
