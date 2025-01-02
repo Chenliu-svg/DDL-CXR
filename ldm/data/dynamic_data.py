@@ -610,7 +610,7 @@ class PredictDataset(Dataset):
         test_transforms.append(transforms.CenterCrop(224))
 
         test_transforms.append(transforms.ToTensor())
-        test_transforms.append(normalize)
+        test_transforms.append(normalize) 
 
         self.transform={'train':transforms.Compose(train_transforms),'validate':transforms.Compose(test_transforms),'test':transforms.Compose(test_transforms)}
         

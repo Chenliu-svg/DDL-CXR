@@ -26,7 +26,7 @@ if __name__ == '__main__':
     
     # pickle ehr for generation
     gen_picler=EHR_Pickler(stage='generation',metadata_path=args.metadata_path,mimic_iv_subjects_dir=args.mimic_iv_subjects_dir)
-    gen_picler.pickle_ehr()
+    gen_picler.pickle_ehr() 
     
     # pikcle ehr for prediction
     pred_picler=EHR_Pickler(stage='prediction',metadata_path=args.metadata_path,mimic_iv_subjects_dir=args.mimic_iv_subjects_dir)

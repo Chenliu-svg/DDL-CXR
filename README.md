@@ -88,7 +88,7 @@ Specify the required data path  following instructions in [`pre_processing.py`](
    --mimic_iv_subjects_dir $mimic_iv_subjects_dir
    ```
 
-   The pickled EHR files for ldm is saved in `$metadata_path/{train/validate/test}_ehr_dm.pkl`, `$metadata_path/{train/validate/test}_ehr_gen.pkl` and `$metadata_path/{train/validate/test}_ehr_pred.pkl` for prediction.
+   The pickled EHR files for ldm is saved in `$metadata_path/{train/validate/test}_ehr_dm.pkl`, `$metadata_path/{train/validate/test}_ehr_gen.pkl` and `$metadata_path/{train/validate/test}_ehr_pred.pkl` for prediction. 
 
 ## STEP1: Autoencoder
 
