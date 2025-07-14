@@ -558,6 +558,29 @@ class AutoencoderKLLabel(AutoencoderKL):
         dec = self.decode(z)
         return dec, posterior, z
     
+    @torch.no_grad()
+    def log_images(self, batch, only_inputs=False, **kwargs):
+        log = dict()
+        # get ground truth
+        x = self.get_input(batch)[0]
+        x = x.to(self.device)
+        if not only_inputs:
+            # in forward function: xrec is sampled from posterior output from the encoder
+            xrec, posterior = self(x)
+            if x.shape[1] > 3:
+                # colorize with random projection
+                assert xrec.shape[1] > 3
+                x = self.to_rgb(x)
+                xrec = self.to_rgb(xrec)
+    
+            log["samples"] = self.decode(torch.randn_like(posterior.sample()))
+            # get reconstruction
+            log["reconstructions"] = xrec
+        log["inputs"] = x
+    
+        return log
+
+
 
     def training_step(self, batch, batch_idx, optimizer_idx):
         gt_x,gt_label = self.get_input(batch)
@@ -647,9 +670,9 @@ class AutoencoderKLLabel(AutoencoderKL):
         discloss, log_dict_disc = self.loss(gt_x, reconstructions, posterior, 1, self.global_step,
                                             last_layer=self.get_last_layer(), split="val")
 
-        rec_loss=log_dict_ae["val/rec_loss"]
+        # rec_loss=log_dict_ae["val/rec_loss"]
         
-        self.log("val/rec_loss", rec_loss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+        # self.log("val/rec_loss", rec_loss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
 
         self.log("val/aeloss", aeloss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
         

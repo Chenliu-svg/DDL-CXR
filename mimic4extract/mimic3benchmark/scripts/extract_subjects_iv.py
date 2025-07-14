@@ -85,6 +85,7 @@ phenotypes = add_hcup_ccs_2015_groups(diagnoses, yaml.load(open(f'{args.phenotyp
 # the ground truth phenotype matirx
 make_phenotype_label_matrix(phenotypes, stays).to_csv(os.path.join(args.output_path, 'phenotype_labels.csv'),
                                                       index=True, quoting=csv.QUOTE_NONNUMERIC)
+# exit(0)
 
 if args.test:
     pat_idx = np.random.choice(patients.shape[0], size=1000)

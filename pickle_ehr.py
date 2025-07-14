@@ -29,7 +29,7 @@ if __name__ == '__main__':
     gen_picler.pickle_ehr() 
     
     # pikcle ehr for prediction
-    pred_picler=EHR_Pickler(stage='prediction',normalizer_state='/home/sh3/users/liuc/DDL-CXR/ldm/data/normalizers/predict_normalizer',metadata_path=args.metadata_path,mimic_iv_subjects_dir=args.mimic_iv_subjects_dir)
+    pred_picler=EHR_Pickler(stage='prediction',normalizer_state='./ldm/data/normalizers/predict_normalizer',metadata_path=args.metadata_path,mimic_iv_subjects_dir=args.mimic_iv_subjects_dir)
     pred_picler.pickle_ehr()
     
 

@@ -33,7 +33,7 @@ data:
   target: main.DataModuleFromConfig
   params:
     batch_size: 64
-    num_workers: 32
+    num_workers: 2
     wrap: True
     train:
       target: ldm.data.dynamic_data.VAE_Dataset
@@ -45,7 +45,7 @@ data:
     validation:
       target: ldm.data.dynamic_data.VAE_Dataset
       params:
-        partition: "validate"
+        partition: "val"
         mimic_cxr_jpg_dir: /root/autodl-tmp/dynamic_new/dynamic_cxr
         metadata_path: ./data/
 
@@ -56,7 +56,7 @@ lightning:
     image_logger:
       target: main.ImageLogger
       params:
-        batch_frequency_train: 2000
+        batch_frequency_train: 2
         batch_frequency_val: 360
         max_images: 8
         # increase_log_steps: True
