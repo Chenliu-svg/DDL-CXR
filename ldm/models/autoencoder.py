@@ -562,11 +562,11 @@ class AutoencoderKLLabel(AutoencoderKL):
     def log_images(self, batch, only_inputs=False, **kwargs):
         log = dict()
         # get ground truth
-        x = self.get_input(batch)[0]
+        x,_ = self.get_input(batch)
         x = x.to(self.device)
         if not only_inputs:
             # in forward function: xrec is sampled from posterior output from the encoder
-            xrec, posterior = self(x)
+            xrec, posterior,_ = self(x)
             if x.shape[1] > 3:
                 # colorize with random projection
                 assert xrec.shape[1] > 3
