@@ -113,7 +113,7 @@ Specify the required data path  following instructions in [`pre_processing.py`](
       data.params.batch_size=$batch_size
    ```
 
-   <!-- You can skip the training by download our model from [DDL-CXR-VAE](). -->
+   You can skip the training by download our model from [DDL-CXR-VAE](https://huggingface.co/jasmineChen/ddl-cxr/blob/main/ddl-cxr-vae.ckpt).
 
 
 ## STEP2: LDM
@@ -144,7 +144,7 @@ Specify the required data path  following instructions in [`pre_processing.py`](
       
 ```
 
-   <!-- You can skip the training by download our model from [DDL-CXR-LDM](). -->
+   You can skip the training by download our model from [DDL-CXR-LDM](https://huggingface.co/jasmineChen/ddl-cxr/blob/main/ddl-cxr-ldm.ckpt).
 
 ### Generate latent cxr for prediction
 
